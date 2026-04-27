@@ -1158,6 +1158,34 @@
     // EXPORTAÇÃO EXCEL (.XLS) E EMAIL
     // =========================================================================
     function gerarEEnviarExcel() {
+        // Encontra o botão de enviar dentro do modal automaticamente (sem mexer no seu HTML)
+        const btn = document.querySelector('button[onclick="gerarEEnviarExcel()"]');
+        
+        // ==========================================
+        // PASSO 2: ABRIR O E-MAIL (Se a planilha já foi baixada)
+        // ==========================================
+        if (btn && btn.getAttribute('data-status') === 'pronto') {
+            const g = getGeneralData();
+            const emailTo = "guinamijonas@gmail.com"; 
+            const subject = encodeURIComponent(`Draft OXP - ${g.shipper.split('\n')[0]}`);
+            const mensagemCliente = "Aqui está o Draft do pedido OXP com os dados do pedido! Caso houver algum erro, mande novamente para mim!";
+            const body = encodeURIComponent(`${mensagemCliente}\n\n----------------------\nResumo:\nNavio: ${g.vessel}\nPOL: ${g.pol} / POD: ${g.pod}\nTotal de Containers: ${listaContainers.length}\n\n(Lembrete: Anexe a planilha XLS que acabou de ser baixada neste e-mail antes de enviar)`);
+            
+            window.location.href = `mailto:${emailTo}?subject=${subject}&body=${body}`;
+            
+            // Reseta o botão para o estado e cor originais para o próximo uso
+            btn.removeAttribute('data-status');
+            btn.innerHTML = `Enviar Ordem
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m2 21l21-9L2 3v7l15 2l-15 2z"/></svg>`;
+            btn.style.background = ''; 
+            
+            fecharModal();
+            return;
+        }
+
+        // ==========================================
+        // PASSO 1: GERAR E BAIXAR A PLANILHA (Excel)
+        // ==========================================
         const g = getGeneralData();
         
         let tabelaHTML = `
@@ -1198,24 +1226,18 @@
         const a = document.createElement('a');
         a.href = url;
         a.download = `BookingDraft_${g.vessel.replace(/[^a-z0-9]/gi, '_')}.xls`;
-        
-        // CORREÇÃO PARA O IPHONE (iOS): Injeta na página, clica e remove rápido
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        
-        // CORREÇÃO PARA O IPHONE (iOS): Dá um respiro de 800 milissegundos para o celular baixar o arquivo ANTES de mudar de tela
-        setTimeout(() => {
-            const emailTo = "operacao.oxp@expeditors.com"; 
-            const subject = encodeURIComponent(`Draft OXP - ${g.shipper.split('\n')[0]}`);
-            const mensagemCliente = "Aqui está o Draft do pedido OXP com os dados do pedido! Caso houver algum erro, mande novamente para mim!";
-            const body = encodeURIComponent(`${mensagemCliente}\n\n----------------------\nResumo:\nNavio: ${g.vessel}\nPOL: ${g.pol} / POD: ${g.pod}\nTotal de Containers: ${listaContainers.length}\n\n(Lembrete: Anexe a planilha XLS que acabou de ser baixada neste e-mail antes de enviar)`);
-            
-            window.location.href = `mailto:${emailTo}?subject=${subject}&body=${body}`;
-            
-            fecharModal();
-            URL.revokeObjectURL(url); // Limpa a memória pra não deixar o navegador pesado
-        }, 800);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+        // MÁGICA: Transforma o botão visualmente para o Passo 2
+        if (btn) {
+            btn.setAttribute('data-status', 'pronto');
+            btn.innerHTML = `2º Passo: Abrir E-mail <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
+            // Coloca um verde estilo Tailwind para indicar que o download deu certo
+            btn.style.background = '#10b981'; 
+        }
     }
 
     // =========================================================================
